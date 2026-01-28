@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 
 def overview_dataset(df: pd.DataFrame):
     print(df.info())
@@ -13,17 +14,73 @@ def number_companies_per_sector(df: pd.DataFrame):
     """
     sector_counts = (
         df
-        .groupby(['ateco_code', 'ateco_desc'])
+        .groupby(['ateco_code'])
         .size()
         .reset_index(name='company_count')
         .sort_values('company_count', ascending=False)
+        .reset_index(drop=True)
     )
 
     sector_counts['share_%'] = (
             sector_counts['company_count'] / len(df) * 100
     ).round(2)
 
-    print(sector_counts.head(10))
+    return sector_counts
+
+def sector_revenue_concentration(df: pd.DataFrame):
+    """
+    Goal: see which sectors actually generate money (not just company counts)
+    :param df: Dataframe
+    :return:
+    """
+    sector_revenue = (
+        df
+        .groupby('ateco_code')['revenue']
+        .sum()
+        .reset_index()
+        .sort_values('revenue', ascending=False)
+    )
+
+    sector_revenue['revenue_share_%'] = (
+        sector_revenue['revenue'] / sector_revenue['revenue'].sum() * 100
+    ).round(2)
+
+    return sector_revenue
+
+def plot_sector_revenue_pie(df, top_n=10):
+
+    sector_revenue = (
+        df.groupby('ateco_code')['revenue']
+        .sum()
+        .sort_values(ascending=False)
+    )
+
+    top_sectors = sector_revenue.head(top_n)
+    others = sector_revenue.iloc[top_n:].sum()
+
+    pie_data = pd.concat([
+        top_sectors,
+        pd.Series({'Others': others})
+    ])
+
+    base_colors = plt.cm.tab20.colors[:len(top_sectors)]
+
+    colors = list(base_colors) + ["#d9d9d9"]  # soft gray for Others
+
+    plt.figure(figsize=(9, 9))
+    plt.pie(
+        pie_data,
+        labels=pie_data.index,
+        colors=colors,
+        autopct='%1.1f%%',
+        startangle=140,
+        wedgeprops={'edgecolor': 'white'}
+    )
+
+    plt.title(f"Sector Revenue Concentration (Top {top_n} + Others)")
+    plt.tight_layout()
+    plt.show()
+
 
 def revenue_statistics_per_sector(df: pd.DataFrame):
     """

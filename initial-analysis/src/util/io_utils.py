@@ -63,11 +63,11 @@ def create_sanitized_dataset(project_root, path_from: str, path_to: str) -> pd.D
     """
     df = load_data(project_root, path_from)
 
-    # Remove rows where sector info is missing
-    df = df.dropna(subset=['ateco_code', 'ateco_desc'])
+    # Remove rows where important info is missing
+    df = df.dropna(subset=['ateco_code', 'ateco_desc', 'province'])
 
     # Fill missing provinces with "UNKNOWN"
-    df['province'] = df['province'].fillna("OTHERS")
+    # df['province'] = df['province'].fillna("OTHERS")
 
     # Check results
     print("Cleaned rows:", len(df))
