@@ -81,6 +81,75 @@ def plot_sector_revenue_pie(df, top_n=10):
     plt.tight_layout()
     plt.show()
 
+def sector_pareto(df: pd.DataFrame):
+    """
+    Pareto cumulative curve (80/20 visualization)
+    :param df: Dataframe
+    :return:
+    """
+    sector_rev = (
+        df.groupby("ateco_code")["revenue"]
+          .sum()
+          .sort_values(ascending=False)
+          .reset_index()
+    )
+
+    sector_rev["cum_revenue"] = sector_rev["revenue"].cumsum()
+    total_revenue = sector_rev["revenue"].sum()
+
+    sector_rev["cum_share"] = sector_rev["cum_revenue"] / total_revenue
+
+    return sector_rev
+
+def plot_pareto(sector_rev: pd.DataFrame):
+    """
+    Plot Pareto cumulative curve
+    :param sector_rev: Dataframe result from sector_pareto()
+    :return:
+    """
+    plt.figure(figsize=(10,6))
+
+    plt.plot(sector_rev["cum_share"].values)
+    plt.axhline(0.8, linestyle="--")   # 80% revenue line
+
+    plt.xlabel("Sectors (sorted by revenue)")
+    plt.ylabel("Cumulative revenue share")
+    plt.title("Pareto Curve — Sector Revenue Concentration")
+
+    plt.ylim(0, 1.05)
+    plt.show()
+
+def sector_pareto_num(sector_rev: pd.DataFrame):
+    """
+    How many sectors generate 80% of revenue (Pareto-style)
+    """
+    cutoff = (sector_rev["cum_share"] <= 0.8).sum()
+    total_sectors = len(sector_rev)
+    percent = cutoff / total_sectors
+
+    print(f"{cutoff} sectors generate ~80% of total revenue")
+    print(f"Total sectors: {total_sectors}")
+    # Pick whichever style you prefer:
+    print(f"Percent:    {percent:.1%}")           # cleanest
+    # print(f"Percent:    {percent * 100:.1f}%")  # very explicit
+    # print(f"Percent:    {percent:.2%}")         # more decimals
+
+def dominant_sectors(sector_rev: pd.DataFrame, threshold=0.80):
+    """
+    Extract dominant sectors (80% revenue contributors)
+    :param sector_rev:
+    :param threshold:
+    :return:
+    """
+    dominant = sector_rev[sector_rev["cum_share"] <= threshold].copy()
+
+    dominant["sector_share_%"] = (
+        dominant["revenue"] / sector_rev["revenue"].sum() * 100
+    ).round(2)
+
+    dominant["cum_share_%"] = (dominant["cum_share"] * 100).round(2)
+
+    return dominant
 
 def revenue_statistics_per_sector(df: pd.DataFrame):
     """

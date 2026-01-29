@@ -2,7 +2,8 @@ from pathlib import Path
 
 from util.behavior_intelligence import prepare_monthly_data, fast_growing_customers, describe_fast_growing_customers
 from util.descriptive_analytics import number_companies_per_sector, revenue_statistics_per_sector, top_provinces, \
-    revenue_performance_by_province, sector_revenue_concentration, plot_sector_revenue_pie
+    revenue_performance_by_province, sector_revenue_concentration, plot_sector_revenue_pie, sector_pareto, plot_pareto, \
+    sector_pareto_num, dominant_sectors
 from util.general_utilities import title
 from util.io_utils import load_data
 
@@ -19,9 +20,18 @@ def main():
     title("Sector Revenue Concentration")
     print(sector_revenue_concentration(df).head(10))
 
-    title("Revenue statistics per sector (* Which sectors are attractive *)")
-    revenue_statistics_per_sector(df)
-    plot_sector_revenue_pie(df, 10)
+    # title("Revenue statistics per sector (* Which sectors are attractive *)")
+    # revenue_statistics_per_sector(df)
+    # plot_sector_revenue_pie(df, 10)
+
+    title("Pareto Performance by Sector")
+    sector_rev = sector_pareto(df)
+    sector_pareto_num(sector_rev)
+    dominant_sec = dominant_sectors(sector_rev)
+    print(dominant_sec.head(50))
+    plot_pareto(sector_rev)
+
+    return
 
     title("Top Provinces (* Where revenue concentrates geographically *)")
     top_provinces(df)
