@@ -1,0 +1,27 @@
+services:
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+
+    ports:
+      - "8888:8888"
+
+    volumes:
+      - "C:/Develop/RomeBusinessSchool/rbs-ds-capstone/initial-anlysis:/home/jovyan/work"
+
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=capstone2026               # keep this (or remove it)
+      - NB_USER=jovyan
+      - CHOWN_HOME=yes
+      - NB_UID=1000
+      - NB_GID=1000
+
+    # ← Add this block to completely disable auth
+    command: >
+      start-notebook.sh
+      --NotebookApp.token=''
+      --NotebookApp.password=''
+      --NotebookApp.allow_origin='*'
+      --ip=0.0.0.0
+
+    restart: unless-stopped
