@@ -1,9 +1,9 @@
 .idea/
 src/util/__pycache__/
-data/dataset-en.csv
-data/dataset-en-clean.csv
-data/initial-analysis/data/dataset-split-purchase.csv
-data/dataset-split-purchase-seasoned.csv
+initial-analysis/data/dataset-en.csv
+initial-analysis/data/dataset-en-clean.csv
+initial-analysis/data/initial-analysis/data/dataset-split-purchase.csv
+initial-analysis/data/dataset-split-purchase-seasoned.csv
 
 
 

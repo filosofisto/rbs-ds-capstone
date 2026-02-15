@@ -1,25 +1,16 @@
 import pandas as pd
 
-from util.general_utilities import info, debug, error
+from util.general_utilities import info, error
 
+def load_data(project_root, filename: str):
+    path = project_root / ".." / "data" / filename
 
-def load_data(project_root, file: str) -> pd.DataFrame:
-    """
-    Load data from file
-    :param project_root: Project root folder
-    :param file: File name
-    :return:
-    """
-    data_from_path = project_root / ".." / "data" / file
+    df = pd.read_csv(path, sep=";", encoding="cp1252", decimal=",")
 
-    df = pd.read_csv(
-        data_from_path,
-        sep=";",
-        encoding="cp1252",
-        decimal=",",
-    )
-
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'], errors='coerce')
     return df
+
 
 def create_en_translated_file_dataset(project_root, file_from: str, file_to: str) -> pd.DataFrame:
     """
@@ -369,16 +360,21 @@ def get_season(date):
         return 'Autumn'
 
 def create_season_columns(df: pd.DataFrame):
-    # Assuming reference_date is already defined as before
     reference_date = pd.Timestamp('2025-12-31')
 
-    # Create date column
     df['date'] = df['Month'].apply(
         lambda m: reference_date + pd.offsets.MonthEnd(m)
     )
-    df['date'] = pd.to_datetime(df['date'])
 
-    # Add English season column
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+
+    print("After conversion — dtype:", df['date'].dtype)
+    print("Sample dates:\n", df[['Month', 'date']].head(8))
+    print("is_datetime64?", pd.api.types.is_datetime64_any_dtype(df['date']))
+
+    if not pd.api.types.is_datetime64_any_dtype(df['date']):
+        raise ValueError("Conversion still failed inside the function!")
+
     df['season'] = df['date'].apply(get_season)
 
     return df
