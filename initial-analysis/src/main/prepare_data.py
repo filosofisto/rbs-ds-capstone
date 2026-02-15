@@ -19,22 +19,21 @@ def main():
     # 4. Sanitize data
     df = create_sanitized_dataset(project_root, "dataset-en.csv", "dataset-en-clean.csv")
 
-    # 5. Overview Sanitized Data
-    overview_dataset(df)
+    # 5. ateco_dotless column
+    df = create_ateco_dotless_column(df)
 
-    # 6. ateco_dotless column
-    create_ateco_dotless_column(df)
+    # 6. Create sector and sub_sector columns
+    df = create_sector_columns(df)
 
-    # 7. Create sector and sub_sector columns
-    create_sector_columns(df)
+    # 7. Split purchase per month
+    df = split_month_purchase(df)
 
-    # 8. Split purchase per month
-    expanded_df = split_month_purchase(df)
+    # 8. Season columns
+    df = create_season_columns(df)
 
-    # 9. Season columns
-    create_season_columns(project_root, expanded_df, "dataset-split-purchase-seasoned.csv")
+    persist_dataset(project_root, df, "dataset-split-purchase-seasoned.csv")
 
-    # 10. Overview Final Dataset
+    # 9. Overview Final Dataset
     overview_dataset(load_data(project_root, "dataset-split-purchase-seasoned.csv"))
 
 

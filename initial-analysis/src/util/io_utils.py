@@ -329,6 +329,8 @@ def create_ateco_dotless_column(df: pd.DataFrame):
     # Apply transformations
     df['ateco_dotless'] = df['ateco_code'].apply(clean_ateco_dotless)
 
+    return df
+
 
 def create_sector_columns(df: pd.DataFrame):
     # Sector = first character (usually a letter)
@@ -347,6 +349,8 @@ def create_sector_columns(df: pd.DataFrame):
         pd.NA
     )
 
+    return df;
+
 def get_season(date):
     """
     Returns the season name in English based on the given date.
@@ -364,7 +368,7 @@ def get_season(date):
     else:  # Sep 21 – Dec 20
         return 'Autumn'
 
-def create_season_columns(project_root, df: pd.DataFrame, path_to: str):
+def create_season_columns(df: pd.DataFrame):
     # Assuming reference_date is already defined as before
     reference_date = pd.Timestamp('2025-12-31')
 
@@ -377,7 +381,7 @@ def create_season_columns(project_root, df: pd.DataFrame, path_to: str):
     # Add English season column
     df['season'] = df['date'].apply(get_season)
 
-    persist_dataset(project_root, df, path_to)
+    return df
 
 def persist_dataset(project_root, df: pd.DataFrame, path_to: str):
     data_path_to = project_root / ".." / "data" / path_to
