@@ -3,7 +3,7 @@ from pathlib import Path
 from util.general_utilities import overview_dataset
 from util.io_utils import create_en_translated_file_dataset, create_sanitized_dataset, check_ateco_columns_nullability, \
     check_ateco_code_duplication, group_data, check_revenue_vs_months, split_month_purchase, \
-    create_ateco_dotless_column, create_sector_columns, persist_dataset, load_data
+    create_ateco_dotless_column, create_sector_columns, persist_dataset, load_data, create_season_columns
 
 
 def main():
@@ -29,10 +29,13 @@ def main():
     create_sector_columns(df)
 
     # 8. Split purchase per month
-    split_month_purchase(project_root, df, "dataset-split-purchase.csv")
+    expanded_df = split_month_purchase(df)
 
-    # 9. Overview Final Dataset
-    overview_dataset(load_data(project_root, "dataset-split-purchase.csv"))
+    # 9. Season columns
+    create_season_columns(project_root, expanded_df, "dataset-split-purchase-seasoned.csv")
+
+    # 10. Overview Final Dataset
+    overview_dataset(load_data(project_root, "dataset-split-purchase-seasoned.csv"))
 
 
 if __name__ == "__main__":

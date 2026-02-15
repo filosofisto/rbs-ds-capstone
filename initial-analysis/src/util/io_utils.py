@@ -10,7 +10,7 @@ def load_data(project_root, file: str) -> pd.DataFrame:
     :param file: File name
     :return:
     """
-    data_from_path = project_root / "data" / file
+    data_from_path = project_root / ".." / "data" / file
 
     df = pd.read_csv(
         data_from_path,
@@ -267,7 +267,7 @@ def group_data(project_root, df: pd.DataFrame, path_to: str):
 
     return grouped
 
-def split_month_purchase(project_root, df: pd.DataFrame, path_to: str):
+def split_month_purchase(df: pd.DataFrame):
     """
     Split the rows creating a row per month.
     :param project_root: Project root folder
@@ -310,10 +310,9 @@ def split_month_purchase(project_root, df: pd.DataFrame, path_to: str):
     # Quick check
     info(f"Original shape: {df.shape}")
     info(f"Expanded shape: {expanded_df.shape} (should be ~36x original rows)")
-    print(expanded_df.head(10))  # or display() in Jupyter
+    print(expanded_df.head(10))
 
-    # Save if needed
-    persist_dataset(project_root, expanded_df, path_to)
+    return expanded_df
 
 def clean_ateco_dotless(code):
     if pd.isna(code):
@@ -348,8 +347,40 @@ def create_sector_columns(df: pd.DataFrame):
         pd.NA
     )
 
+def get_season(date):
+    """
+    Returns the season name in English based on the given date.
+    Uses approximate astronomical/meteorological seasons for the Northern Hemisphere.
+    """
+    month = date.month
+    day = date.day
+
+    if (month == 12 and day >= 21) or month in [1, 2] or (month == 3 and day < 21):
+        return 'Winter'
+    elif (month == 3 and day >= 21) or month in [4, 5] or (month == 6 and day < 21):
+        return 'Spring'
+    elif (month == 6 and day >= 21) or month in [7, 8] or (month == 9 and day < 21):
+        return 'Summer'
+    else:  # Sep 21 – Dec 20
+        return 'Autumn'
+
+def create_season_columns(project_root, df: pd.DataFrame, path_to: str):
+    # Assuming reference_date is already defined as before
+    reference_date = pd.Timestamp('2025-12-31')
+
+    # Create date column
+    df['date'] = df['Month'].apply(
+        lambda m: reference_date + pd.offsets.MonthEnd(m)
+    )
+    df['date'] = pd.to_datetime(df['date'])
+
+    # Add English season column
+    df['season'] = df['date'].apply(get_season)
+
+    persist_dataset(project_root, df, path_to)
+
 def persist_dataset(project_root, df: pd.DataFrame, path_to: str):
-    data_path_to = project_root / "data" / path_to
+    data_path_to = project_root / ".." / "data" / path_to
     df.to_csv(data_path_to, index=False, sep=";", encoding="utf-8")
 
     return data_path_to
