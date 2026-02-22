@@ -379,6 +379,31 @@ def create_season_columns(df: pd.DataFrame):
 
     return df
 
+def create_quarter_columns(df: pd.DataFrame):
+    """
+    Adds quarter columns using the existing 'date' column.
+    """
+    # Numeric quarter (1, 2, 3, 4)
+    df['quarter_num'] = df['date'].dt.quarter
+
+    # Readable label (Q1, Q2, Q3, Q4)
+    df['quarter_label'] = 'Q' + df['quarter_num'].astype(str)
+
+    # Optional: Year + Quarter (useful for multi-year analysis)
+    df['year_quarter'] = (
+        df['date'].dt.year.astype(str) + 'Q' + df['quarter_num'].astype(str)
+    )
+
+    # Optional: Quarter name (more verbose, good for reports)
+    quarter_names = {1: 'Q1 (Jan-Mar)', 2: 'Q2 (Apr-Jun)',
+                     3: 'Q3 (Jul-Sep)', 4: 'Q4 (Oct-Dec)'}
+    df['quarter_name'] = df['quarter_num'].map(quarter_names)
+
+    info("Quarter columns added. Sample:")
+    print(df[['date', 'quarter_num', 'quarter_label', 'year_quarter', 'quarter_name']].head(8))
+
+    return df
+
 def persist_dataset(project_root, df: pd.DataFrame, path_to: str):
     data_path_to = project_root / ".." / "data" / path_to
     df.to_csv(data_path_to, index=False, sep=";", encoding="utf-8")

@@ -16,7 +16,9 @@ from util.descriptive_analytics import number_companies_per_sector, revenue_stat
     plt_total_purchase_by_season_and_sector_heatmap, plt_total_purchase_by_province, \
     plt_mean_purchase_sector_and_season, plt_variance_purchase_sector_and_season, \
     plt_season_percentage_change_by_sector, plt_anova_test_for_seasonal_differences_by_sector, \
-    anova_test_top_sectors_analysis
+    anova_test_top_sectors_analysis, plot_purchases_by_sector_and_quarter_lines, \
+    plot_purchases_by_sector_and_quarter_heatmap, plot_purchases_by_province_and_quarter_lines, \
+    plot_purchases_by_legal_nature_and_quarter_lines, plot_purchases_by_legal_nature_and_quarter_heatmap
 from util.general_utilities import title, info
 from util.io_utils import load_data
 
@@ -25,7 +27,7 @@ def main():
     # Data Analyse
     # -----------------------------------------------------------
     project_root = Path(__file__).resolve().parents[1]
-    df = load_data(project_root, "dataset-split-purchase-seasoned.csv")
+    df = load_data(project_root, "dataset-final.csv")
 
     title("Descriptive Analysis")
     comp_sector = number_companies_per_sector(df)
@@ -50,11 +52,17 @@ def main():
     # plot_total_purchases_by_month(df)
     # plot_purchases_by_sector_and_month_lines(df)
     # plot_purchases_by_sector_and_month_heatmap(df)
+
+    # plot_purchases_by_sector_and_quarter_lines(df)
+    # plot_purchases_by_sector_and_quarter_heatmap(df)
     # plot_avg_monthly_purchase_per_company(df)
     # plot_purchases_by_province_and_month_lines(df)
     # plot_purchases_by_province_and_month_heatmap(df)
-    # plot_purchases_by_legal_nature_and_month_lines(df)
-    # plot_purchases_by_legal_nature_and_month_heatmap(df)
+    # plot_purchases_by_province_and_quarter_lines(df)
+    plot_purchases_by_legal_nature_and_month_lines(df)
+    plot_purchases_by_legal_nature_and_month_heatmap(df)
+    plot_purchases_by_legal_nature_and_quarter_lines(df)
+    plot_purchases_by_legal_nature_and_quarter_heatmap(df)
     # plot_avg_monthly_purchase_per_sector_company(df)
     # plot_avg_monthly_purchase_per_province_company(df)
     # plot_avg_monthly_purchase_per_legal_nature_company(df)
@@ -68,7 +76,7 @@ def main():
     # plt_variance_purchase_sector_and_season(df)
     # plt_season_percentage_change_by_sector(df)
     # plt_anova_test_for_seasonal_differences_by_sector(df)
-    anova_test_top_sectors_analysis(df)
+    # anova_test_top_sectors_analysis(df)
 
     # title("Sector Revenue Concentration")
     # print(sector_revenue_concentration(df).head(10))

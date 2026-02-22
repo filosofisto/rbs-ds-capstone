@@ -482,6 +482,142 @@ def plot_purchases_by_sector_and_month_heatmap(df: pd.DataFrame):
     plt.tight_layout()
     plt.show()
 
+def plot_purchases_by_sector_and_quarter_lines(
+    df,
+    top_n=10,
+    rank_by='purchase'
+):
+    # Force datetime and drop any NaT (safety)
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df = df.dropna(subset=['date'])
+
+    # Determine top sectors (same as before)
+    if rank_by == 'purchase':
+        top_sectors = df.groupby('sector')['Purchase'].sum().nlargest(top_n).index.tolist()
+        title_suffix = f"Top {top_n} Sectors by Total Purchase"
+        sort_metric = df.groupby('sector')['Purchase'].sum()
+    else:
+        top_sectors = df.groupby('sector')['company_id'].nunique().nlargest(top_n).index.tolist()
+        title_suffix = f"Top {top_n} Sectors by Number of Companies"
+        sort_metric = df.groupby('sector')['company_id'].nunique()
+
+    df_top = df[df['sector'].isin(top_sectors)].copy()
+
+    # Aggregate by quarter — use string quarter label directly
+    quarterly_sector = (
+        df_top.assign(
+            year=df_top['date'].dt.year,
+            quarter=df_top['date'].dt.quarter
+        )
+        .groupby(['year', 'quarter', 'sector'])['Purchase']
+        .sum()
+        .reset_index()
+        .sort_values(['sector', 'year', 'quarter'])
+    )
+
+    # Create readable quarter label (2023Q1, 2023Q2, etc.)
+    quarterly_sector['quarter_label'] = (
+        quarterly_sector['year'].astype(str) + 'Q' + quarterly_sector['quarter'].astype(str)
+    )
+
+    # Diagnostic print (remove after confirming fix)
+    print("\nQuarterly aggregation sample:")
+    print(quarterly_sector[['year', 'quarter', 'quarter_label', 'sector', 'Purchase']].head(15))
+
+    # Sort sectors for legend
+    sorted_sectors = sort_metric.loc[top_sectors].sort_values(ascending=False).index.tolist()
+
+    plt.figure(figsize=(14, 8))
+
+    # Line plot using string quarter_label on x-axis
+    sns.lineplot(
+        data=quarterly_sector,
+        x='quarter_label',
+        y='Purchase',
+        hue='sector',
+        hue_order=sorted_sectors,
+        marker='o',
+        linewidth=1.8,
+        markersize=6,
+        palette='tab10'
+    )
+
+    plt.title(f'Total Purchases by Quarter – {title_suffix}', fontsize=14)
+    plt.xlabel('Quarter', fontsize=12)
+    plt.ylabel('Total Purchase (€)', fontsize=12)
+
+    plt.gca().yaxis.set_major_formatter(
+        plt.FuncFormatter(lambda x, _: f'{x / 1_000_000:.1f} M €')
+    )
+
+    plt.xticks(rotation=45, ha='right')
+    plt.legend(
+        title='Sector',
+        bbox_to_anchor=(1.02, 1),
+        loc='upper left',
+        fontsize=10
+    )
+
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
+def plot_purchases_by_sector_and_quarter_heatmap(df: pd.DataFrame):
+    """
+    Creates a heatmap of purchases by sector and quarter, using the 'date' column.
+    X-axis shows readable quarter labels (e.g. 2023Q1, 2023Q2, ..., 2025Q4).
+    """
+    # Force datetime (safety)
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df = df.dropna(subset=['date'])  # drop any invalid dates
+
+    # Aggregate by quarter
+    quarterly_sector = (
+        df.assign(quarter=df['date'].dt.to_period('Q'))
+          .groupby(['quarter', 'sector'])['Purchase']
+          .sum()
+          .reset_index()
+          .sort_values(['sector', 'quarter'])
+    )
+
+    # Create pivot table: rows = sectors, columns = quarters (as period)
+    pivot = quarterly_sector.pivot_table(
+        values='Purchase',
+        index='sector',
+        columns='quarter',
+        aggfunc='sum',
+        fill_value=0
+    )
+
+    # Optional: normalize per sector to show relative pattern (%)
+    # Comment out if you want absolute values
+    pivot = pivot.div(pivot.sum(axis=1), axis=0) * 100
+
+    plt.figure(figsize=(14, 10))
+
+    sns.heatmap(
+        pivot,
+        cmap='YlGnBu',
+        annot=True,
+        fmt='.0f' if pivot.max().max() > 100 else '.1f',
+        linewidths=0.5,
+        cbar_kws={
+            'label': 'Percentage of Sector Total (%)' if pivot.max().max() <= 100
+                     else 'Total Purchase (€)'
+        }
+    )
+
+    plt.title('Purchases Heatmap: Sector × Quarter', fontsize=14)
+    plt.xlabel('Quarter', fontsize=12)
+    plt.ylabel('Sector', fontsize=12)
+
+    # Format x-axis ticks as "2023Q1", "2023Q2", etc.
+    quarter_labels = [str(q) for q in pivot.columns]  # already in '2023Q1' format
+    plt.xticks(ticks=range(len(quarter_labels)), labels=quarter_labels, rotation=45, ha='right')
+
+    plt.tight_layout()
+    plt.show()
+
 def plot_purchases_by_province_and_month_lines(
     df,
     top_n=10,
@@ -612,6 +748,93 @@ def plot_purchases_by_province_and_month_heatmap(df: pd.DataFrame):
     plt.tight_layout()
     plt.show()
 
+def plot_purchases_by_province_and_quarter_lines(
+    df,
+    top_n=10,
+    rank_by='purchase'          # 'purchase' or 'companies'
+):
+    """
+    Plots total purchases by quarter for top provinces.
+    Uses the 'date' column for proper quarterly grouping.
+    X-axis shows readable quarter labels (e.g. 2023Q1, 2023Q2, ..., 2025Q4).
+    """
+    # Force datetime (safety)
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df = df.dropna(subset=['date'])  # drop any invalid dates
+
+    # Determine top provinces
+    if rank_by == 'purchase':
+        top_province = df.groupby('province')['Purchase'].sum().nlargest(top_n).index.tolist()
+        title_suffix = f"Top {top_n} Provinces by Total Purchase"
+        sort_metric = df.groupby('province')['Purchase'].sum()
+    else:
+        top_province = df.groupby('province')['company_id'].nunique().nlargest(top_n).index.tolist()
+        title_suffix = f"Top {top_n} Provinces by Number of Companies"
+        sort_metric = df.groupby('province')['company_id'].nunique()
+
+    # Filter to top provinces
+    df_top = df[df['province'].isin(top_province)].copy()
+
+    # Aggregate by quarter using date column
+    quarterly_province = (
+        df_top.assign(
+            year=df_top['date'].dt.year,
+            quarter=df_top['date'].dt.quarter
+        )
+        .groupby(['year', 'quarter', 'province'])['Purchase']
+        .sum()
+        .reset_index()
+        .sort_values(['province', 'year', 'quarter'])
+    )
+
+    # Create readable quarter label (2023Q1, 2023Q2, etc.)
+    quarterly_province['quarter_label'] = (
+        quarterly_province['year'].astype(str) + 'Q' + quarterly_province['quarter'].astype(str)
+    )
+
+    # Sort provinces for legend (highest first)
+    sorted_province = sort_metric.loc[top_province].sort_values(ascending=False).index.tolist()
+
+    plt.figure(figsize=(14, 8))
+
+    # Line plot with sorted hue order
+    sns.lineplot(
+        data=quarterly_province,
+        x='quarter_label',
+        y='Purchase',
+        hue='province',
+        hue_order=sorted_province,
+        marker='o',
+        linewidth=1.8,
+        markersize=6,
+        palette='tab10'
+    )
+
+    # Title and labels
+    plt.title(f'Total Purchases by Quarter – {title_suffix}', fontsize=14)
+    plt.xlabel('Quarter', fontsize=12)
+    plt.ylabel('Total Purchase (€)', fontsize=12)
+
+    # Y-axis in millions €
+    plt.gca().yaxis.set_major_formatter(
+        plt.FuncFormatter(lambda x, _: f'{x / 1_000_000:.1f} M €')
+    )
+
+    # Rotate x-ticks for readability
+    plt.xticks(rotation=45, ha='right')
+
+    # Legend on the right
+    plt.legend(
+        title='Province',
+        bbox_to_anchor=(1.02, 1),
+        loc='upper left',
+        fontsize=10
+    )
+
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
 def plot_purchases_by_legal_nature_and_month_lines(
     df,
     top_n=10,
@@ -732,6 +955,149 @@ def plot_purchases_by_legal_nature_and_month_heatmap(df: pd.DataFrame):
     # Format x-axis labels manually as strings
     labels = [date.strftime('%b %y') for date in pivot.columns]
     plt.xticks(ticks=range(len(labels)), labels=labels, rotation=45, ha='right')
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_purchases_by_legal_nature_and_quarter_lines(
+    df,
+    top_n=10,
+    rank_by='purchase'          # 'purchase' or 'companies'
+):
+    """
+    Plots total purchases by quarter for top legal nature categories.
+    Uses the 'date' column for proper quarterly grouping.
+    X-axis shows readable quarter labels (e.g. 2023Q1, 2023Q2, ..., 2025Q4).
+    """
+    # Force datetime (safety)
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df = df.dropna(subset=['date'])  # drop any invalid dates
+
+    # Determine top legal nature categories
+    if rank_by == 'purchase':
+        top_legal = df.groupby('legal_nature')['Purchase'].sum().nlargest(top_n).index.tolist()
+        title_suffix = f"Top {top_n} Legal Nature by Total Purchase"
+        sort_metric = df.groupby('legal_nature')['Purchase'].sum()
+    else:
+        top_legal = df.groupby('legal_nature')['company_id'].nunique().nlargest(top_n).index.tolist()
+        title_suffix = f"Top {top_n} Legal Nature by Number of Companies"
+        sort_metric = df.groupby('legal_nature')['company_id'].nunique()
+
+    # Filter to top legal nature categories
+    df_top = df[df['legal_nature'].isin(top_legal)].copy()
+
+    # Aggregate by quarter using date column
+    quarterly_legal = (
+        df_top.assign(
+            year=df_top['date'].dt.year,
+            quarter=df_top['date'].dt.quarter
+        )
+        .groupby(['year', 'quarter', 'legal_nature'])['Purchase']
+        .sum()
+        .reset_index()
+        .sort_values(['legal_nature', 'year', 'quarter'])
+    )
+
+    # Create readable quarter label (2023Q1, 2023Q2, etc.)
+    quarterly_legal['quarter_label'] = (
+        quarterly_legal['year'].astype(str) + 'Q' + quarterly_legal['quarter'].astype(str)
+    )
+
+    # Sort categories for legend (highest first)
+    sorted_legal = sort_metric.loc[top_legal].sort_values(ascending=False).index.tolist()
+
+    plt.figure(figsize=(14, 8))
+
+    # Line plot with sorted hue order
+    sns.lineplot(
+        data=quarterly_legal,
+        x='quarter_label',
+        y='Purchase',
+        hue='legal_nature',
+        hue_order=sorted_legal,
+        marker='o',
+        linewidth=1.8,
+        markersize=6,
+        palette='tab10'
+    )
+
+    # Title and labels
+    plt.title(f'Total Purchases by Quarter – {title_suffix}', fontsize=14)
+    plt.xlabel('Quarter', fontsize=12)
+    plt.ylabel('Total Purchase (€)', fontsize=12)
+
+    # Y-axis in millions €
+    plt.gca().yaxis.set_major_formatter(
+        plt.FuncFormatter(lambda x, _: f'{x / 1_000_000:.1f} M €')
+    )
+
+    # Rotate x-ticks for readability
+    plt.xticks(rotation=45, ha='right')
+
+    # Legend on the right
+    plt.legend(
+        title='Legal Nature',
+        bbox_to_anchor=(1.02, 1),
+        loc='upper left',
+        fontsize=10
+    )
+
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
+def plot_purchases_by_legal_nature_and_quarter_heatmap(df: pd.DataFrame):
+    """
+    Creates a heatmap of purchases by legal nature and quarter, using the 'date' column.
+    X-axis shows readable quarter labels (e.g. 2023Q1, 2023Q2, ..., 2025Q4).
+    """
+    # Force datetime and clean invalid dates (safety)
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df = df.dropna(subset=['date'])
+
+    # Aggregate by quarter
+    quarterly_legal = (
+        df.assign(quarter=df['date'].dt.to_period('Q'))
+          .groupby(['quarter', 'legal_nature'])['Purchase']
+          .sum()
+          .reset_index()
+          .sort_values(['legal_nature', 'quarter'])
+    )
+
+    # Create pivot table: rows = legal nature, columns = quarters (as period)
+    pivot = quarterly_legal.pivot_table(
+        values='Purchase',
+        index='legal_nature',
+        columns='quarter',
+        aggfunc='sum',
+        fill_value=0
+    )
+
+    # Optional: normalize per legal nature to show relative pattern (%)
+    # Comment out if you want absolute values
+    pivot = pivot.div(pivot.sum(axis=1), axis=0) * 100
+
+    plt.figure(figsize=(14, 10))
+
+    sns.heatmap(
+        pivot,
+        cmap='YlGnBu',
+        annot=True,
+        fmt='.0f' if pivot.max().max() > 100 else '.1f',
+        linewidths=0.5,
+        cbar_kws={
+            'label': 'Percentage of Legal Nature Total (%)' if pivot.max().max() <= 100
+                     else 'Total Purchase (€)'
+        }
+    )
+
+    plt.title('Purchases Heatmap: Legal Nature × Quarter', fontsize=14)
+    plt.xlabel('Quarter', fontsize=12)
+    plt.ylabel('Legal Nature', fontsize=12)
+
+    # Format x-axis ticks as "2023Q1", "2023Q2", etc.
+    quarter_labels = [str(q) for q in pivot.columns]  # str(2023Q1) = '2023Q1'
+    plt.xticks(ticks=range(len(quarter_labels)), labels=quarter_labels, rotation=45, ha='right')
 
     plt.tight_layout()
     plt.show()
